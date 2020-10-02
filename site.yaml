@@ -5,7 +5,7 @@
   become: yes
 
   tasks:
-
+# installing nginx on  servers
   - name: Installs nginx web server
 
     apt:
@@ -15,17 +15,108 @@
       state: present
 
       update_cache: true
-
     notify:
 
     - start nginx
 
+# installing php-fpm on servers
+
+ 
+  - name: Installs php-fpm
+
+    apt:
+
+      name: php-fpm
+
+      state: present
+
+      update_cache: true
+
+    notify:
+
+    - start php7.4-fpm
+
+
+
+#changing php-fpm configuration
+
+  - name: ensure php7.4-fpm cgi.fix_pathinfo=0
+    lineinfile: dest=/etc/php/7.4/fpm/php.ini regexp='^(.*)cgi.fix_pathinfo=' line=cgi.fix_pathinfo=0
+    notify:
+    - restart php7.4-fpm
+    - restart nginx
+
+
+# changing nginx configurations
+
+
+  - name: Removes "default" site at sites-enabled
+    file:
+       path: "/etc/nginx/sites-enabled/default"
+       state: absent
+    notify: 
+    - restart nginx
+# setting modified default at etc/nginx/sites-available
+
+  - name: Sets Nginx conf file at sites-available
+    template:
+       src: "./default"
+       dest: "/etc/nginx/sites-available/default1"
+# linking default file from sites-avilable to sites-enable
+
+  - name: Enables new site at sites-available
+    file:
+       src: "/etc/nginx/sites-available/default1"
+       dest: "/etc/nginx/sites-enabled/default1"
+       state: link
+    notify: 
+    - restart nginx
+    - start nginx
+
+# allowing ufw on port80
+
+  - name: "UFW - Allow HTTP on port 80"
+    ufw:
+       rule: allow
+       port: '80'
+       proto: any
+
+# adding php at /var/www/html location
+
+  - name: Sets Up index.PHP Page
+    template:
+      src: "./index.php"
+      dest: "/var/www/html/index.php"
+
+# handlers
+
   handlers:
 
+  - name: start php7.4-fpm
+    service:
+
+      name: php7.4-fpm
+
+      state: started
   - name: start nginx
+    service:
+
+      name: nginx
+
+      state: started
+
+
+  - name: restart php7.4-fpm
+    service:
+
+      name: php7.4-fpm
+
+      state: restarted
+  - name: restart nginx
 
     service:
 
       name: nginx
 
-      state: present
+      state: restarted
+
