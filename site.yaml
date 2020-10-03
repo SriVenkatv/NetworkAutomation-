@@ -5,8 +5,8 @@
   become: yes
 
   tasks:
-# installing nginx on  servers
-  - name: Installs nginx web server
+  - debug: var=ansible_default_ipv4.address
+  - name: Installs nginx web server on devA devB and devC
 
     apt:
 
@@ -19,10 +19,19 @@
 
     - start nginx
 
-# installing php-fpm on servers
+  - name: Installs php on devA devB and devC
 
- 
-  - name: Installs php-fpm
+    apt:
+
+      name: php
+
+      state: present
+
+      update_cache: true
+
+
+
+  - name: Installs php-fpm on devA devB and devC
 
     apt:
 
@@ -36,59 +45,50 @@
 
     - start php7.4-fpm
 
-
-
-#changing php-fpm configuration
-
-  - name: ensure php7.4-fpm cgi.fix_pathinfo=0
+  - name: keeping php7.4-fpm cgi.fix_pathinfo=0 to run the php files on nginx
     lineinfile: dest=/etc/php/7.4/fpm/php.ini regexp='^(.*)cgi.fix_pathinfo=' line=cgi.fix_pathinfo=0
     notify:
     - restart php7.4-fpm
     - restart nginx
 
-
-# changing nginx configurations
-
-
-  - name: Removes "default" site at sites-enabled
+  - name: Removes "default" site at etc/nginx/sites-enabled
     file:
        path: "/etc/nginx/sites-enabled/default"
        state: absent
     notify: 
     - restart nginx
-# setting modified default at etc/nginx/sites-available
 
-  - name: Sets Nginx conf file at sites-available
+  - name: Sets Nginx conf file at etc/nginx/sites-available
     template:
        src: "./default"
        dest: "/etc/nginx/sites-available/default1"
-# linking default file from sites-avilable to sites-enable
 
-  - name: Enables new site at sites-available
+  - name: links default etc/nginx/sites-available to the etc/nginx/sites-enable
     file:
        src: "/etc/nginx/sites-available/default1"
        dest: "/etc/nginx/sites-enabled/default1"
        state: link
     notify: 
     - restart nginx
-    - start nginx
+   
 
-# allowing ufw on port80
-
-  - name: "UFW - Allow HTTP on port 80"
+  - name: "UFW - Allow HTTP on port 80 to connect connections for the nginx"
     ufw:
        rule: allow
        port: '80'
        proto: any
 
-# adding php at /var/www/html location
 
-  - name: Sets Up index.PHP Page
+  - name: Sets Up index.PHP Page at root var/www/html
     template:
       src: "./index.php"
       dest: "/var/www/html/index.php"
+    notify:
+    - restart nginx
+    - start nginx
+    - restart php7.4-fpm
+    - start php7.4-fpm 
 
-# handlers
 
   handlers:
 
@@ -98,6 +98,9 @@
       name: php7.4-fpm
 
       state: started
+
+
+
   - name: start nginx
     service:
 
@@ -119,4 +122,43 @@
       name: nginx
 
       state: restarted
+- hosts: haproxy
+  become: yes
 
+  tasks:
+  - debug: var=ansible_default_ipv4.address
+
+
+  - name: Installs haproxy load balancer on devhaproxy load balancer
+    apt:
+      name: haproxy
+      state: present
+      update_cache: true
+
+  - name: locates haproxy configuration with jinja2 template file at /etc/haproxy/haproxy.cfg
+    template:
+      src: ./haproxy.cfg.j2
+      dest: /etc/haproxy/haproxy.cfg
+      mode: 0640
+      owner: root
+      group: root
+    notify:
+    - restart haproxy
+  - name: Sets default starting flag to 1 to enable haproxy
+    lineinfile:
+      dest: /etc/default/haproxy
+      regexp: "^ENABLED"
+      line: "ENABLED=1"
+    notify:
+    - restart haproxy
+
+
+  handlers:
+  
+  - name: restart haproxy
+    service:
+        name: haproxy
+        state: restarted
+
+   
+...
