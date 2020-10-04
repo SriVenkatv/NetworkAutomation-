@@ -7,7 +7,7 @@ Automation configuration of Nginx webservers and Haproxy load balancer using ans
 5)	Haproxy.cfg.j2: Haproxy configuration file using jinja2 template.
 6)	Index.php: simple php file which shows hostname, ip and port. 
 
-This assignment is to implement a simple web service using Nginx webserver and Haproxy load balancer. The basic architecture of running webserver: 
+This assignment is to implement a simple web service using Nginx webserver and Haproxy load balancer. 
 
 
 
