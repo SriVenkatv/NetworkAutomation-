@@ -51,6 +51,21 @@
     - restart php7.4-fpm
     - restart nginx
 
+  - name: Removes "nginx.conf" site at etc/nginx/
+    file:
+       path: "/etc/nginx/nginx.conf"
+       state: absent
+  
+  - name: Sets nginx.conf file at etc/nginx/
+    template:
+       src: "./default1"
+       dest: "/etc/nginx/nginx.conf"
+    notify:
+    - restart php7.4-fpm
+    - restart nginx
+
+
+
   - name: Removes "default" site at etc/nginx/sites-enabled
     file:
        path: "/etc/nginx/sites-enabled/default"
